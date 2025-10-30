@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porto Oásis - Logística Naval</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <style>
+        /* Estilos customizados */
+        #map { 
+            height: 600px; 
+            border-radius: 0.5rem; /* Arredondamento para combinar com o Bootstrap */
+        }
+        /* Fundo do mapa mais escuro para a camada 'dark_all' */
+        .leaflet-container { 
+            background: #212529; /* Cor de fundo escura, similar ao dark mode do Bootstrap */
+        } 
+        .timeline { 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+
+        /* Estilos de cor solicitados */
+        .origin-highlight {
+            background-color: #add8e6; /* Azul clarinho (LightBlue) */
+            color: #1f2d3d; /* Texto escuro para contraste */
+            font-weight: bold;
+        }
+
+        .destination-highlight {
+            background-color: #90ee90; /* Verde clarinho (LightGreen) */
+            color: #1f2d3d; /* Texto escuro para contraste */
+            font-weight: bold;
+        }
+        /* Ajuste para o ícone do navio */
+        .ship-icon {
+            font-size: 2.2rem; /* Tamanho maior para o emoji */
+            line-height: 1; /* Para centralizar verticalmente */
+            text-align: center;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-light text-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fs-3 fw-bold" href="#">Porto Oásis</a>
+            <p class="text-white mb-0 ms-3 d-none d-md-block fst-italic">Sua rota segura e eficiente para o comércio global</p>
+        </div>
+    </nav>
+
+    <main class="container py-5">
+        <section class="mb-5">
+            <h2 class="text-center text-primary mb-4 fw-semibold">
+                <i class="bi bi-geo-alt-fill me-2"></i> Buscar Transporte Naval para o Porto Oásis
+            </h2>
+            <div class="row justify-content-center g-3">
+                <div class="col-md-4">
+                    <label for="origin" class="form-label fw-medium text-primary">Origem:</label>
+                    <select id="origin" class="form-select border-primary origin-highlight">
+                        <option value="shanghai">Porto de Shanghai, China</option>
+                        <option value="singapore">Porto de Singapura</option>
+                        <option value="colombo">Porto de Colombo, Sri Lanka</option>
+                        <option value="cape-town">Porto de Cidade do Cabo, África do Sul</option>
+                        <option value="santos">Porto de Santos, Brasil</option>
+                        <option value="oasis">Porto Oásis, São Luís, Maranhão</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="destination" class="form-label fw-medium text-primary">Destino:</label>
+                    <select id="destination" class="form-select border-success destination-highlight">
+                        <option value="oasis">Porto Oásis, São Luís, Maranhão</option>
+                        <option value="shanghai">Porto de Shanghai, China</option>
+                        <option value="singapore">Porto de Singapura</option>
+                        <option value="colombo">Porto de Colombo, Sri Lanka</option>
+                        <option value="cape-town">Porto de Cidade do Cabo, África do Sul</option>
+                        <option value="santos">Porto de Santos, Brasil</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button id="trace-route" class="btn btn-primary w-100 fw-bold">
+                        <i class="bi bi-arrow-right-circle-fill me-1"></i> Traçar Rota
+                    </button>
+                </div>
+            </div>
+            <p id="status" class="text-center text-primary mt-3 fs-6"></p>
+        </section>
+
+        ---
+
+        <section class="row g-4">
+            <div id="map" class="col-md-8 shadow-lg"></div>
+            <div class="col-md-4">
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <h3 class="card-title text-primary mb-4 fw-semibold">
+                            <i class="bi bi-clock-history me-2"></i> Histórico da Viagem
+                        </h3>
+                        <div id="progress-container" class="position-relative mb-4">
+                            <div class="progress" role="progressbar" aria-label="Progresso da Viagem" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="height: 1rem;">
+                                <div id="progress" class="progress-bar bg-primary" style="width: 0%"></div>
+                            </div>
+                            </div>
+
+                        <ul id="timeline" class="timeline list-unstyled small border p-3 rounded bg-light">
+                            <li class="text-muted">Aguardando traçado da rota...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2025 Porto Oásis. Made by Danilo. <i class="bi bi-globe"></i></p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        // Data atual
+        const currentDate = new Date('2025-10-21');
+
+        // Ordem dos portos ao longo da rota
+        const portOrder = ['shanghai', 'singapore', 'colombo', 'cape-town', 'santos', 'oasis'];
+
+        // Dicionário de coordenadas e nomes de portos
+        const ports = {
+            shanghai: { coords: [31.2304, 121.4737], name: 'Porto de Shanghai, China' },
+            singapore: { coords: [1.3521, 103.8198], name: 'Porto de Singapura' },
+            colombo: { coords: [6.5244, 79.9011], name: 'Porto de Colombo, Sri Lanka' },
+            'cape-town': { coords: [-33.9189, 18.4233], name: 'Porto de Cidade do Cabo, África do Sul' },
+            santos: { coords: [-23.5505, -46.6333], name: 'Porto de Santos, Brasil' },
+            oasis: { coords: [-2.5307, -44.3068], name: 'Porto Oásis, São Luís, Maranhão' }
+        };
+
+        // Inicializar o mapa
+        const map = L.map('map').setView([0, 0], 2);
+
+        // Camada de mapa escura
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> & <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Ícone do navio cargueiro (emoji)
+        const shipIcon = L.divIcon({
+            className: 'ship-icon', // Classe para estilização no CSS
+            html: '🚢', 
+            iconSize: [30, 30], // Ajuste o tamanho conforme a necessidade
+            iconAnchor: [15, 15] // Ponto de âncora do ícone
+        });
+
+        let shipMarker;
+        let route;
+        let animationRunning = false;
+        let portMarkers = [];
+
+        // Função para interpolar pontos
+        function interpolate(start, end, t) {
+            return [
+                start[0] + (end[0] - start[0]) * t,
+                start[1] + (end[1] - start[1]) * t
+            ];
+        }
+
+        // Função para calcular data interpolada
+        function getInterpolatedDate(startDate, totalDays, t) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + Math.floor(totalDays * t));
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        // Função para adicionar entrada no histórico com cores
+        function addTimelineEntry(message, type = 'default') {
+            const timeline = document.getElementById('timeline');
+            const li = document.createElement('li');
+            li.className = 'p-2 mb-1 rounded small';
+
+            if (type === 'origin') {
+                li.classList.add('origin-highlight');
+                li.innerHTML = `<i class="bi bi-caret-right-fill me-1"></i> ${message}`;
+            } else if (type === 'destination') {
+                li.classList.add('destination-highlight');
+                li.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ${message}`;
+            } else if (type === 'stop') {
+                li.classList.add('bg-info', 'bg-opacity-10', 'text-info');
+                li.innerHTML = `<i class="bi bi-clock me-1"></i> ${message}`;
+            } else {
+                li.classList.add('bg-secondary', 'bg-opacity-10', 'text-secondary');
+                li.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${message}`;
+            }
+            
+            timeline.appendChild(li);
+            timeline.scrollTop = timeline.scrollHeight;
+        }
+
+        // Evento para traçar rota
+        document.getElementById('trace-route').addEventListener('click', () => {
+            if (animationRunning) return;
+
+            const originKey = document.getElementById('origin').value;
+            const destKey = document.getElementById('destination').value;
+            const originName = ports[originKey].name;
+            const destName = ports[destKey].name;
+
+            if (originKey === destKey) {
+                alert('Origem e destino não podem ser os mesmos.');
+                return;
+            }
+
+            // Lógica de construção da rota (mantida)
+            const indexOrigin = portOrder.indexOf(originKey);
+            const indexDest = portOrder.indexOf(destKey);
+            let routeKeys;
+            if (indexOrigin < indexDest) {
+                routeKeys = portOrder.slice(indexOrigin, indexDest + 1);
+            } else {
+                routeKeys = portOrder.slice(indexDest, indexOrigin + 1).reverse();
+            }
+
+            const routePoints = routeKeys.map(key => ports[key].coords);
+            const portNames = routeKeys.map(key => ports[key].name);
+
+            // Limpar mapa anterior
+            if (route) route.remove();
+            if (shipMarker) shipMarker.remove();
+            portMarkers.forEach(marker => marker.remove());
+            portMarkers = [];
+
+            // Desenhar a rota
+            route = L.polyline(routePoints, {color: '#0d6efd', weight: 4, opacity: 0.7, dashArray: '8, 8'}).addTo(map);
+            map.fitBounds(route.getBounds(), {padding: [50, 50]});
+
+            // Adicionar marcadores para os portos
+            routePoints.forEach((point, index) => {
+                let markerColor = '#dc3545'; // Cor padrão (vermelho para paradas)
+                if (index === 0) markerColor = '#add8e6'; // Azul claro para ORIGEM
+                else if (index === routePoints.length - 1) markerColor = '#90ee90'; // Verde claro para DESTINO
+                
+                const customIcon = L.divIcon({
+                    className: '',
+                    html: `<i class="bi bi-pin-map-fill" style="color: ${markerColor}; font-size: 24px;"></i>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24]
+                });
+
+                const marker = L.marker(point, {icon: customIcon}).addTo(map).bindPopup(portNames[index]);
+                portMarkers.push(marker);
+            });
+
+            shipMarker = L.marker(routePoints[0], {icon: shipIcon}).addTo(map);
+
+            // Configurar barra de progresso (usando componentes Bootstrap)
+            const progressContainer = document.getElementById('progress-container');
+            const progressEl = document.getElementById('progress');
+            progressContainer.innerHTML = `
+                <div class="progress" role="progressbar" aria-label="Progresso da Viagem" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="height: 1rem;">
+                    <div id="progress" class="progress-bar bg-primary" style="width: 0%"></div>
+                </div>
+            `;
+            const progressArea = progressContainer.querySelector('.progress');
+
+            // Adicionar bolinhas de parada (Pontos de interesse)
+            const numPorts = routePoints.length;
+            for (let i = 0; i < numPorts; i++) {
+                const dot = document.createElement('div');
+                dot.id = `dot-${i}`;
+                dot.classList.add('position-absolute', 'rounded-circle', 'border', 'border-white', 'shadow-sm');
+                dot.style.width = '16px';
+                dot.style.height = '16px';
+                dot.style.top = '50%';
+                dot.style.transform = 'translate(-50%, -50%)';
+                dot.style.left = `${(i / (numPorts - 1)) * 100}%`;
+                dot.style.zIndex = 10;
+                
+                if (i === 0) {
+                    dot.classList.add('bg-primary'); // Cor da origem
+                } else if (i === numPorts - 1) {
+                    dot.classList.add('bg-success', 'border-success'); // Cor do destino
+                } else {
+                    dot.classList.add('bg-secondary'); // Cor das paradas
+                }
+
+                progressArea.appendChild(dot);
+            }
+            
+            // Iniciar simulação
+            animationRunning = true;
+            document.getElementById('status').textContent = 'Traçando rota...';
+            document.getElementById('timeline').innerHTML = ''; // Limpar histórico
+
+            addTimelineEntry(`Início da Viagem: Partindo de ${originName}.`, 'origin');
+
+            const stepsPerSegment = 150; // Aumentei os passos para animação mais suave
+            const totalSegments = routePoints.length - 1;
+            const totalSteps = stepsPerSegment * totalSegments;
+            let currentStep = 0;
+            const totalDays = totalSegments * 7; // Dias arbitrários por segmento
+            const estimatedArrival = new Date(currentDate);
+            estimatedArrival.setDate(estimatedArrival.getDate() + totalDays);
+            addTimelineEntry(`Estimativa de Chegada em ${destName}: ${estimatedArrival.toLocaleDateString('pt-BR')}.`);
+
+            const interval = setInterval(() => {
+                if (currentStep >= totalSteps) {
+                    clearInterval(interval);
+                    // Preencher bolinha final (destino)
+                    document.getElementById(`dot-${numPorts - 1}`).classList.replace('bg-success', 'bg-success');
+                    addTimelineEntry(`Chegada Final: Navio chegou em ${destName} na data ${getInterpolatedDate(currentDate, totalDays, 1)}.`, 'destination');
+                    document.getElementById('status').textContent = 'Simulação concluída!';
+                    animationRunning = false;
+                    return;
+                }
+
+                const segmentIndex = Math.floor(currentStep / stepsPerSegment);
+                const t = (currentStep % stepsPerSegment) / stepsPerSegment;
+                const start = routePoints[segmentIndex];
+                const end = routePoints[segmentIndex + 1];
+                const position = interpolate(start, end, t);
+                shipMarker.setLatLng(position);
+
+                // Atualizar progresso
+                const progressValue = ((segmentIndex + t) / totalSegments) * 100;
+                const progressBar = document.getElementById('progress');
+                progressBar.style.width = `${progressValue}%`;
+                progressBar.setAttribute('aria-valuenow', progressValue.toFixed(2));
+
+                // Destaque nas paradas
+                if (t >= 0.99 && segmentIndex < totalSegments - 1) {
+                    addTimelineEntry(`Parada Intermediária: Chegou no ${portNames[segmentIndex + 1]}.`, 'stop');
+                    // Mudar a cor da bolinha de parada
+                    document.getElementById(`dot-${segmentIndex + 1}`).classList.replace('bg-secondary', 'bg-info');
+                }
+
+                currentStep++;
+            }, 15); // Velocidade da animação (ms)
+        });
+    </script>
+</body>
+</html>
