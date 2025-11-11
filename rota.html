@@ -1,43 +1,72 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Porto Oásis - Logística Naval</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
-    <style>
-        /* Estilos customizados */
-        #map { 
-            height: 600px; 
-            border-radius: 0.5rem; /* Arredondamento para combinar com o Bootstrap */
+    <title>Rastreamento - Porto Oásis</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 1s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
         }
+    </script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Estilos customizados para o mapa */
+        #map { 
+            height: 500px;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
         /* Fundo do mapa mais escuro para a camada 'dark_all' */
         .leaflet-container { 
-            background: #212529; /* Cor de fundo escura, similar ao dark mode do Bootstrap */
-        } 
+            background: #1e293b; /* Cor de fundo escura, similar ao dark mode do Tailwind */
+        }
+        
         .timeline { 
             max-height: 400px; 
             overflow-y: auto; 
         }
-
+        
         /* Estilos de cor solicitados */
         .origin-highlight {
-            background-color: #add8e6; /* Azul clarinho (LightBlue) */
-            color: #1f2d3d; /* Texto escuro para contraste */
+            background-color: #dbeafe; /* Azul clarinho (Tailwind blue-100) */
+            color: #1e3a8a; /* Texto escuro para contraste */
             font-weight: bold;
         }
-
+        
         .destination-highlight {
-            background-color: #90ee90; /* Verde clarinho (LightGreen) */
-            color: #1f2d3d; /* Texto escuro para contraste */
+            background-color: #dcfce7; /* Verde clarinho (Tailwind green-100) */
+            color: #166534; /* Texto escuro para contraste */
             font-weight: bold;
         }
+        
         /* Ajuste para o ícone do navio */
         .ship-icon {
             font-size: 2.2rem; /* Tamanho maior para o emoji */
@@ -45,88 +74,159 @@
             text-align: center;
             display: block;
         }
+        
+        /* Estilo para a barra de progresso customizada */
+        .progress-container {
+            position: relative;
+            height: 1.5rem;
+            background-color: #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #3b82f6;
+            border-radius: 0.375rem;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-dot {
+            position: absolute;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid white;
+            z-index: 10;
+        }
+        
+        /* Responsividade para telas menores */
+        @media (max-width: 768px) {
+            #map {
+                height: 350px;
+            }
+            
+            .timeline {
+                max-height: 300px;
+            }
+        }
     </style>
 </head>
-<body class="bg-light text-dark">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fs-3 fw-bold" href="#">Porto Oásis</a>
-            <p class="text-white mb-0 ms-3 d-none d-md-block fst-italic">Sua rota segura e eficiente para o comércio global</p>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Navbar (mantida do index.html) -->
+    <nav class="bg-blue-900 shadow-lg fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center hover:opacity-80 transition-opacity">
+                        <i class="fas fa-ship text-white text-2xl mr-2"></i>
+                        <span class="text-white font-bold text-xl">Porto Oasis</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="index.html#home" class="text-white hover:text-blue-200 transition">Início</a>
+                    <a href="index.html#rotas" class="text-white hover:text-blue-200 transition">Rotas</a>
+                    <a href="index.html#rastreamento" class="text-white hover:text-blue-200 transition">Rastreamento</a>
+                    <a href="gestao.html" class="text-white hover:text-blue-200 transition">Gestão</a>
+                    <a href="index.html#comunicacao" class="text-white hover:text-blue-200 transition">Contato</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="index.html#home" class="block py-2 px-4 text-sm text-white hover:bg-blue-800 transition">Início</a>
+            <a href="index.html#rotas" class="block py-2 px-4 text-sm text-white hover:bg-blue-800 transition">Rotas</a>
+            <a href="index.html#rastreamento" class="block py-2 px-4 text-sm text-white hover:bg-blue-800 transition">Rastreamento</a>
+            <a href="gestao.html" class="block py-2 px-4 text-sm text-white hover:bg-blue-800 transition">Gestão</a>
+            <a href="index.html#comunicacao" class="block py-2 px-4 text-sm text-white hover:bg-blue-800 transition">Contato</a>
         </div>
     </nav>
 
-    <main class="container py-5">
-        <section class="mb-5">
-            <h2 class="text-center text-primary mb-4 fw-semibold">
-                <i class="bi bi-geo-alt-fill me-2"></i> Buscar Transporte Naval para o Porto Oásis
+    <!-- Conteúdo principal -->
+    <main class="pt-20 max-w-7xl mx-auto px-4 py-8">
+        <section class="mb-8">
+            <h2 class="text-3xl font-bold text-center mb-6 text-blue-900 animate-fade-in">
+                <i class="fas fa-map-marker-alt mr-2"></i> Rastreamento de Transporte Naval
             </h2>
-            <div class="row justify-content-center g-3">
-                <div class="col-md-4">
-                    <label for="origin" class="form-label fw-medium text-primary">Origem:</label>
-                    <select id="origin" class="form-select border-primary origin-highlight">
-                        <option value="shanghai">Porto de Shanghai, China</option>
-                        <option value="singapore">Porto de Singapura</option>
-                        <option value="colombo">Porto de Colombo, Sri Lanka</option>
-                        <option value="cape-town">Porto de Cidade do Cabo, África do Sul</option>
-                        <option value="santos">Porto de Santos, Brasil</option>
-                        <option value="oasis">Porto Oásis, São Luís, Maranhão</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="destination" class="form-label fw-medium text-primary">Destino:</label>
-                    <select id="destination" class="form-select border-success destination-highlight">
-                        <option value="oasis">Porto Oásis, São Luís, Maranhão</option>
-                        <option value="shanghai">Porto de Shanghai, China</option>
-                        <option value="singapore">Porto de Singapura</option>
-                        <option value="colombo">Porto de Colombo, Sri Lanka</option>
-                        <option value="cape-town">Porto de Cidade do Cabo, África do Sul</option>
-                        <option value="santos">Porto de Santos, Brasil</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button id="trace-route" class="btn btn-primary w-100 fw-bold">
-                        <i class="bi bi-arrow-right-circle-fill me-1"></i> Traçar Rota
-                    </button>
-                </div>
-            </div>
-            <p id="status" class="text-center text-primary mt-3 fs-6"></p>
-        </section>
-
-        ---
-
-        <section class="row g-4">
-            <div id="map" class="col-md-8 shadow-lg"></div>
-            <div class="col-md-4">
-                <div class="card shadow-lg">
-                    <div class="card-body">
-                        <h3 class="card-title text-primary mb-4 fw-semibold">
-                            <i class="bi bi-clock-history me-2"></i> Histórico da Viagem
-                        </h3>
-                        <div id="progress-container" class="position-relative mb-4">
-                            <div class="progress" role="progressbar" aria-label="Progresso da Viagem" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="height: 1rem;">
-                                <div id="progress" class="progress-bar bg-primary" style="width: 0%"></div>
-                            </div>
-                            </div>
-
-                        <ul id="timeline" class="timeline list-unstyled small border p-3 rounded bg-light">
-                            <li class="text-muted">Aguardando traçado da rota...</li>
-                        </ul>
+            <p class="text-center text-gray-600 mb-8 animate-slide-up">
+                Monitore em tempo real a localização e o progresso das suas cargas marítimas
+            </p>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md animate-slide-up">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+                    <div class="lg:col-span-2">
+                        <label for="origin" class="block text-sm font-medium text-gray-700 mb-1">Origem:</label>
+                        <select id="origin" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 origin-highlight">
+                            <option value="shanghai">Porto de Shanghai, China</option>
+                            <option value="singapore">Porto de Singapura</option>
+                            <option value="colombo">Porto de Colombo, Sri Lanka</option>
+                            <option value="cape-town">Porto de Cidade do Cabo, África do Sul</option>
+                            <option value="santos">Porto de Santos, Brasil</option>
+                            <option value="oasis">Porto Oásis, São Luís, Maranhão</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label for="destination" class="block text-sm font-medium text-gray-700 mb-1">Destino:</label>
+                        <select id="destination" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 destination-highlight">
+                            <option value="oasis">Porto Oásis, São Luís, Maranhão</option>
+                            <option value="shanghai">Porto de Shanghai, China</option>
+                            <option value="singapore">Porto de Singapura</option>
+                            <option value="colombo">Porto de Colombo, Sri Lanka</option>
+                            <option value="cape-town">Porto de Cidade do Cabo, África do Sul</option>
+                            <option value="santos">Porto de Santos, Brasil</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <button id="trace-route" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-semibold animate-slide-up">
+                            <i class="fas fa-route mr-2"></i> Traçar Rota
+                        </button>
                     </div>
                 </div>
+                <p id="status" class="text-center text-blue-600 mt-3"></p>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Mapa -->
+            <div class="lg:col-span-2">
+                <div id="map" class="w-full"></div>
+            </div>
+            
+            <!-- Histórico da Viagem -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-blue-900 mb-4">
+                    <i class="fas fa-history mr-2"></i> Histórico da Viagem
+                </h3>
+                
+                <!-- Barra de progresso customizada -->
+                <div id="progress-container" class="mb-6">
+                    <div class="progress-container">
+                        <div id="progress" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <ul id="timeline" class="timeline space-y-2">
+                    <li class="text-gray-500 p-2 rounded">Aguardando traçado da rota...</li>
+                </ul>
             </div>
         </section>
     </main>
 
-    <footer class="bg-dark text-white py-3 mt-5">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2025 Porto Oásis. Made by Danilo. <i class="bi bi-globe"></i></p>
+    <!-- Footer (mantido do index.html) -->
+    <footer class="bg-blue-900 text-white py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p>&copy; Porto Oásis. | Made By Danilo: Logística Naval & Portuária</p>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    
+    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+    
     <script>
         // Data atual
         const currentDate = new Date('2025-10-21');
@@ -145,7 +245,14 @@
         };
 
         // Inicializar o mapa
-        const map = L.map('map').setView([0, 0], 2);
+        const map = L.map('map', {
+            zoomControl: false, // Remove controles de zoom
+            scrollWheelZoom: false, // Desativa zoom com scroll
+            doubleClickZoom: false, // Desativa zoom com duplo clique
+            boxZoom: false, // Desativa zoom com arraste
+            keyboard: false, // Desativa zoom com teclado
+            dragging: false // Desativa arrastar o mapa
+        }).setView([0, 0], 2);
 
         // Camada de mapa escura
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -186,20 +293,20 @@
         function addTimelineEntry(message, type = 'default') {
             const timeline = document.getElementById('timeline');
             const li = document.createElement('li');
-            li.className = 'p-2 mb-1 rounded small';
+            li.className = 'p-2 rounded text-sm';
 
             if (type === 'origin') {
                 li.classList.add('origin-highlight');
-                li.innerHTML = `<i class="bi bi-caret-right-fill me-1"></i> ${message}`;
+                li.innerHTML = `<i class="fas fa-play-circle mr-2"></i> ${message}`;
             } else if (type === 'destination') {
                 li.classList.add('destination-highlight');
-                li.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ${message}`;
+                li.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${message}`;
             } else if (type === 'stop') {
-                li.classList.add('bg-info', 'bg-opacity-10', 'text-info');
-                li.innerHTML = `<i class="bi bi-clock me-1"></i> ${message}`;
+                li.classList.add('bg-blue-100', 'text-blue-800');
+                li.innerHTML = `<i class="fas fa-clock mr-2"></i> ${message}`;
             } else {
-                li.classList.add('bg-secondary', 'bg-opacity-10', 'text-secondary');
-                li.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${message}`;
+                li.classList.add('bg-gray-100', 'text-gray-600');
+                li.innerHTML = `<i class="fas fa-info-circle mr-2"></i> ${message}`;
             }
             
             timeline.appendChild(li);
@@ -220,7 +327,7 @@
                 return;
             }
 
-            // Lógica de construção da rota (mantida)
+            // Lógica de construção da rota
             const indexOrigin = portOrder.indexOf(originKey);
             const indexDest = portOrder.indexOf(destKey);
             let routeKeys;
@@ -240,18 +347,18 @@
             portMarkers = [];
 
             // Desenhar a rota
-            route = L.polyline(routePoints, {color: '#0d6efd', weight: 4, opacity: 0.7, dashArray: '8, 8'}).addTo(map);
-            map.fitBounds(route.getBounds(), {padding: [50, 50]});
+            route = L.polyline(routePoints, {color: '#3b82f6', weight: 4, opacity: 0.7, dashArray: '8, 8'}).addTo(map);
+            map.fitBounds(route.getBounds(), {padding: [20, 20]});
 
             // Adicionar marcadores para os portos
             routePoints.forEach((point, index) => {
-                let markerColor = '#dc3545'; // Cor padrão (vermelho para paradas)
-                if (index === 0) markerColor = '#add8e6'; // Azul claro para ORIGEM
-                else if (index === routePoints.length - 1) markerColor = '#90ee90'; // Verde claro para DESTINO
+                let markerColor = '#6b7280'; // Cor padrão (cinza para paradas)
+                if (index === 0) markerColor = '#3b82f6'; // Azul para ORIGEM
+                else if (index === routePoints.length - 1) markerColor = '#10b981'; // Verde para DESTINO
                 
                 const customIcon = L.divIcon({
                     className: '',
-                    html: `<i class="bi bi-pin-map-fill" style="color: ${markerColor}; font-size: 24px;"></i>`,
+                    html: `<i class="fas fa-map-pin" style="color: ${markerColor}; font-size: 24px;"></i>`,
                     iconSize: [24, 24],
                     iconAnchor: [12, 24]
                 });
@@ -262,37 +369,31 @@
 
             shipMarker = L.marker(routePoints[0], {icon: shipIcon}).addTo(map);
 
-            // Configurar barra de progresso (usando componentes Bootstrap)
+            // Configurar barra de progresso
             const progressContainer = document.getElementById('progress-container');
-            const progressEl = document.getElementById('progress');
             progressContainer.innerHTML = `
-                <div class="progress" role="progressbar" aria-label="Progresso da Viagem" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="height: 1rem;">
-                    <div id="progress" class="progress-bar bg-primary" style="width: 0%"></div>
+                <div class="progress-container">
+                    <div id="progress" class="progress-bar" style="width: 0%"></div>
                 </div>
             `;
-            const progressArea = progressContainer.querySelector('.progress');
+            const progressArea = progressContainer.querySelector('.progress-container');
 
             // Adicionar bolinhas de parada (Pontos de interesse)
             const numPorts = routePoints.length;
             for (let i = 0; i < numPorts; i++) {
                 const dot = document.createElement('div');
                 dot.id = `dot-${i}`;
-                dot.classList.add('position-absolute', 'rounded-circle', 'border', 'border-white', 'shadow-sm');
-                dot.style.width = '16px';
-                dot.style.height = '16px';
-                dot.style.top = '50%';
-                dot.style.transform = 'translate(-50%, -50%)';
-                dot.style.left = `${(i / (numPorts - 1)) * 100}%`;
-                dot.style.zIndex = 10;
+                dot.classList.add('progress-dot');
                 
                 if (i === 0) {
-                    dot.classList.add('bg-primary'); // Cor da origem
+                    dot.classList.add('bg-blue-500'); // Cor da origem
                 } else if (i === numPorts - 1) {
-                    dot.classList.add('bg-success', 'border-success'); // Cor do destino
+                    dot.classList.add('bg-green-500'); // Cor do destino
                 } else {
-                    dot.classList.add('bg-secondary'); // Cor das paradas
+                    dot.classList.add('bg-gray-500'); // Cor das paradas
                 }
 
+                dot.style.left = `${(i / (numPorts - 1)) * 100}%`;
                 progressArea.appendChild(dot);
             }
             
@@ -316,7 +417,7 @@
                 if (currentStep >= totalSteps) {
                     clearInterval(interval);
                     // Preencher bolinha final (destino)
-                    document.getElementById(`dot-${numPorts - 1}`).classList.replace('bg-success', 'bg-success');
+                    document.getElementById(`dot-${numPorts - 1}`).classList.replace('bg-green-500', 'bg-green-500');
                     addTimelineEntry(`Chegada Final: Navio chegou em ${destName} na data ${getInterpolatedDate(currentDate, totalDays, 1)}.`, 'destination');
                     document.getElementById('status').textContent = 'Simulação concluída!';
                     animationRunning = false;
@@ -334,17 +435,31 @@
                 const progressValue = ((segmentIndex + t) / totalSegments) * 100;
                 const progressBar = document.getElementById('progress');
                 progressBar.style.width = `${progressValue}%`;
-                progressBar.setAttribute('aria-valuenow', progressValue.toFixed(2));
 
                 // Destaque nas paradas
                 if (t >= 0.99 && segmentIndex < totalSegments - 1) {
                     addTimelineEntry(`Parada Intermediária: Chegou no ${portNames[segmentIndex + 1]}.`, 'stop');
                     // Mudar a cor da bolinha de parada
-                    document.getElementById(`dot-${segmentIndex + 1}`).classList.replace('bg-secondary', 'bg-info');
+                    document.getElementById(`dot-${segmentIndex + 1}`).classList.replace('bg-gray-500', 'bg-blue-500');
                 }
 
                 currentStep++;
             }, 15); // Velocidade da animação (ms)
+        });
+
+        // Menu móvel (mantido do index.html)
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Opcional: Fecha o menu móvel ao clicar em um link
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
         });
     </script>
 </body>
